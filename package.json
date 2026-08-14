@@ -1,12 +1,11 @@
 {
   "name": "mc-pattern-generator",
   "version": "1.0.0",
-  "description": "",
-  "type": "commonjs",
-  "main": "app.js",
+  "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "alea": "^1.0.1",
