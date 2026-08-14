@@ -1,0 +1,237 @@
+import { createNoise2D, NoiseFunction2D } from "simplex-noise"
+import alea from "alea";
+
+class NormalNoise {
+    private noise2D: NoiseFunction2D;
+    private offsetX: number;
+    private offsetY: number;
+
+    constructor() {
+        this.reseed();
+    }
+
+    public get(posX: number, posY: number): number {
+        const noise: number = this.noise2D(posX + this.offsetX, posY + this.offsetY);
+        const normalized: number = (noise + 1) * 0.5;
+
+        return Math.min(Math.max(normalized, 0), 1);
+    }
+
+    public reseed(): void {
+        const seed = Math.random().toString();
+
+        this.noise2D = createNoise2D(alea(seed));
+        this.offsetX = Math.random() * 1000;
+        this.offsetY = Math.random() * 1000;
+    }
+}
+
+interface BlockInfo {
+    colour: string;
+    weight: number;
+}
+
+function getWeightSum(blocks: Map<string, BlockInfo>): number {
+    let total: number = 0;
+
+    for (const info of blocks.values()) {
+        total += info.weight;
+    }
+
+    return total;
+}
+
+class PatternGrid {
+    private noiseFunc: NormalNoise;
+    private dimensions: [number, number];
+    private scale: [number, number];
+    private blocks: Map<string, BlockInfo>;
+    private weightSum: number;
+
+    constructor(
+        noiseFunc: NormalNoise,
+        dimensions: [number, number],
+        frequency: [number, number],
+        blocks: Map<string, BlockInfo>
+    ) {
+        this.noiseFunc = noiseFunc;
+        this.dimensions = dimensions;
+        this.scale = [Math.exp(frequency[0]), Math.exp(frequency[1])];
+        this.blocks = blocks;
+        this.weightSum = getWeightSum(blocks);
+    }
+
+    public getBlockAt(pos: [number, number]): BlockInfo {
+        let noise: number = this.noiseFunc.get(
+            (pos[0] - this.dimensions[0] * 0.5) * this.scale[0],
+            (pos[1] - this.dimensions[1] * 0.5) * this.scale[1]
+        );
+
+        for (const info of this.blocks.values()) {
+            noise -= info.weight / this.weightSum;
+
+            if (noise <= 0) return info;
+        }
+
+        return Array.from(this.blocks.values())[0]
+    }
+}
+
+const noiseFunc: NormalNoise = new NormalNoise();
+
+const colsRange: HTMLInputElement = document.getElementById("cols-input") as HTMLInputElement;
+const rowsRange: HTMLInputElement = document.getElementById("rows-input") as HTMLInputElement;
+const xFreqRange: HTMLInputElement = document.getElementById("x-freq-range") as HTMLInputElement;
+const yFreqRange: HTMLInputElement = document.getElementById("y-freq-range") as HTMLInputElement;
+const regenBtn: HTMLButtonElement = document.getElementById("regen-btn") as HTMLButtonElement;
+const addBlockBtn: HTMLButtonElement = document.getElementById("add-block-btn") as HTMLButtonElement;
+const blockContainer: HTMLDivElement = document.getElementById("block-container") as HTMLDivElement;
+const canvas: HTMLCanvasElement = document.getElementById("grid-canvas") as HTMLCanvasElement;
+
+const blockWidth: number = 20;
+const blockHeight: number = 20;
+
+const colours: string[] = [
+    "white", "grey", "black", "brown", "red", "orange", "yellow", "green", "blue", "purple", "pink"
+];
+
+const currentBlocks: Map<string, BlockInfo> = new Map();
+
+let blockNum: number = 0;
+
+function clearCanvas(): void {
+    const context: CanvasRenderingContext2D = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+    context.clearRect(0, 0, canvas.width, canvas.height)
+}
+
+function updateCanvas(): void {
+    if (currentBlocks.size == 0) return;
+
+    const cols: number = Number.parseInt(colsRange.value);
+    const rows: number = Number.parseInt(rowsRange.value);
+    const xFreq: number = Number.parseFloat(xFreqRange.value);
+    const yFreq: number = Number.parseFloat(yFreqRange.value);
+
+    if (Number.isNaN(cols) || Number.isNaN(rows) || Number.isNaN(xFreq) || Number.isNaN(yFreq)) {
+        clearCanvas();
+
+        return;
+    }
+
+    const patternGrid = new PatternGrid(
+        noiseFunc, [cols, rows], [xFreq, yFreq], currentBlocks
+    );
+
+    canvas.width = cols * blockWidth;
+    canvas.height = rows * blockHeight;
+
+    const context: CanvasRenderingContext2D = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+    for (let i: number = 0; i < cols; i++) {
+        for (let j: number = 0; j < rows; j++) {
+            const block = patternGrid.getBlockAt([i, j]);
+
+            context.strokeStyle = "black";
+            context.lineWidth = 1;
+            context.fillStyle = block.colour;
+
+            context.fillRect(i * blockWidth, j * blockHeight, blockWidth, blockHeight);
+            context.strokeRect(i * blockWidth, j * blockHeight, blockWidth, blockHeight);
+        }
+    }
+}
+
+addBlockBtn.addEventListener("click", () => {
+    blockNum++;
+
+    let currentName = `Block ${blockNum}`;
+
+    const blockDiv: HTMLDivElement = document.createElement("div");
+
+    const nameInput: HTMLInputElement = document.createElement("input");
+    nameInput.placeholder = "Name";
+    nameInput.value = currentName;
+
+    const colourSelect: HTMLSelectElement = document.createElement("select");
+    colourSelect.innerText = "Colour";
+
+    for (const colour of colours) {
+        const option: HTMLOptionElement = document.createElement("option");
+        option.innerText = colour;
+        option.value = colour;
+
+        colourSelect.append(option);
+    }
+
+    const weightInput: HTMLInputElement = document.createElement("input");
+    weightInput.placeholder = "Weight";
+
+    const deleteBtn: HTMLButtonElement = document.createElement("button");
+    deleteBtn.innerText = "Delete";
+
+    const updateBlocks = () => {
+        const name: string = nameInput.value;
+        const colour: string = colourSelect.value;
+        let weight: number = Number.parseFloat(weightInput.value);
+
+        if (!name || !colour || Number.isNaN(weight)) {
+            clearCanvas();
+
+            return;
+        }
+
+        const existing: BlockInfo | undefined = currentBlocks.get(currentName);
+
+        if (name != currentName && currentBlocks.get(name)) {
+            clearCanvas();
+
+            return;
+        }
+
+        if (existing) {
+            if (name != currentName) {
+                currentBlocks.set(name, existing);
+                currentBlocks.delete(currentName);
+            }
+
+            existing.colour = colour;
+            existing.weight = weight;
+
+        } else {
+            currentBlocks.set(name, {colour: colour, weight: weight});
+        }
+
+        currentName = name;
+
+        updateCanvas();
+    }
+
+    for (const input of [nameInput, colourSelect, weightInput]) {
+        input.addEventListener("input", updateBlocks);
+    }
+
+    deleteBtn.addEventListener("click", () => {
+        blockDiv.remove();
+        currentBlocks.delete(currentName);
+
+        updateCanvas();
+    });
+
+    updateBlocks();
+
+    blockDiv.append(nameInput, colourSelect, weightInput, deleteBtn);
+    blockContainer.append(blockDiv);
+});
+
+regenBtn.addEventListener("click", () => {
+    noiseFunc.reseed();
+
+    updateCanvas();
+});
+
+for (const range of [rowsRange, colsRange, xFreqRange, yFreqRange]) {
+    range.addEventListener("input", updateCanvas);
+}
+
+document.addEventListener("DOMContentLoaded", updateCanvas);
