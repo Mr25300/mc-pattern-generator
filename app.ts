@@ -78,6 +78,7 @@ const xFreqRange: HTMLInputElement = document.getElementById("x-freq-range") as 
 const yFreqRange: HTMLInputElement = document.getElementById("y-freq-range") as HTMLInputElement;
 const regenBtn: HTMLButtonElement = document.getElementById("regen-btn") as HTMLButtonElement;
 const addBlockBtn: HTMLButtonElement = document.getElementById("add-block-btn") as HTMLButtonElement;
+const delBlocksButton: HTMLButtonElement = document.getElementById("del-blocks-btn") as HTMLButtonElement;
 const blockContainer: HTMLDivElement = document.getElementById("block-container") as HTMLDivElement;
 const canvas: HTMLCanvasElement = document.getElementById("grid-canvas") as HTMLCanvasElement;
 
@@ -140,24 +141,23 @@ function updateCanvas(): void {
 }
 
 addBlockBtn.addEventListener("click", () => {
-    blockNum++;
-
     const blockDiv: HTMLDivElement = document.createElement("div");
 
     const nameInput: HTMLInputElement = document.createElement("input");
     nameInput.placeholder = "Name";
-    nameInput.value = `Block ${blockNum}`
+    nameInput.value = `Block ${blockNum + 1}`
 
     const colourSelect: HTMLSelectElement = document.createElement("select");
-    colourSelect.innerText = "Colour";
 
     for (const colour of colours) {
         const option: HTMLOptionElement = document.createElement("option");
-        option.innerText = colour;
+        option.innerText = colour.charAt(0).toUpperCase() + colour.slice(1);
         option.value = colour;
 
         colourSelect.append(option);
     }
+
+    colourSelect.value = colours[blockNum % colours.length];
 
     const weightInput: HTMLInputElement = document.createElement("input");
     weightInput.placeholder = "Weight";
@@ -166,7 +166,7 @@ addBlockBtn.addEventListener("click", () => {
     const deleteBtn: HTMLButtonElement = document.createElement("button");
     deleteBtn.innerText = "Delete";
 
-    const updateBlocks = () => {
+    const updateBlock = () => {
         const colour: string = colourSelect.value;
         let weight: number = Number.parseFloat(weightInput.value);
 
@@ -190,7 +190,7 @@ addBlockBtn.addEventListener("click", () => {
     }
 
     for (const input of [nameInput, colourSelect, weightInput]) {
-        input.addEventListener("input", updateBlocks);
+        input.addEventListener("input", updateBlock);
     }
 
     deleteBtn.addEventListener("click", () => {
@@ -200,10 +200,19 @@ addBlockBtn.addEventListener("click", () => {
         updateCanvas();
     });
 
-    updateBlocks();
+    updateBlock();
 
     blockDiv.append(nameInput, colourSelect, weightInput, deleteBtn);
     blockContainer.append(blockDiv);
+
+    blockNum++;
+});
+
+delBlocksButton.addEventListener("click", () => {
+    blockContainer.replaceChildren();
+    currentBlocks.clear();
+
+    updateCanvas();
 });
 
 regenBtn.addEventListener("click", () => {
