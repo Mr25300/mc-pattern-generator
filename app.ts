@@ -31,34 +31,27 @@ interface BlockInfo {
     weight: number;
 }
 
-function getWeightSum(blocks: Map<string, BlockInfo>): number {
-    let total: number = 0;
-
-    for (const info of blocks.values()) {
-        total += info.weight;
-    }
-
-    return total;
-}
-
 class PatternGrid {
     private noiseFunc: NormalNoise;
     private dimensions: [number, number];
     private scale: [number, number];
-    private blocks: Map<string, BlockInfo>;
-    private weightSum: number;
+    private blocks: BlockInfo[];
+    private weightSum: number = 0;
 
     constructor(
         noiseFunc: NormalNoise,
         dimensions: [number, number],
         frequency: [number, number],
-        blocks: Map<string, BlockInfo>
+        blocks: BlockInfo[]
     ) {
         this.noiseFunc = noiseFunc;
         this.dimensions = dimensions;
         this.scale = [Math.exp(frequency[0]), Math.exp(frequency[1])];
         this.blocks = blocks;
-        this.weightSum = getWeightSum(blocks);
+
+        for (const info of blocks.values()) {
+            this.weightSum += info.weight;
+        }
     }
 
     public getBlockAt(pos: [number, number]): BlockInfo {
@@ -95,7 +88,7 @@ const colours: string[] = [
     "white", "grey", "black", "brown", "red", "orange", "yellow", "green", "blue", "purple", "pink"
 ];
 
-const currentBlocks: Map<string, BlockInfo> = new Map();
+const currentBlocks: Map<HTMLDivElement, BlockInfo> = new Map();
 
 let blockNum: number = 0;
 
@@ -106,7 +99,11 @@ function clearCanvas(): void {
 }
 
 function updateCanvas(): void {
-    if (currentBlocks.size == 0) return;
+    if (currentBlocks.size == 0) {
+        clearCanvas();
+
+        return;
+    }
 
     const cols: number = Number.parseInt(colsRange.value);
     const rows: number = Number.parseInt(rowsRange.value);
@@ -120,7 +117,7 @@ function updateCanvas(): void {
     }
 
     const patternGrid = new PatternGrid(
-        noiseFunc, [cols, rows], [xFreq, yFreq], currentBlocks
+        noiseFunc, [cols, rows], [xFreq, yFreq], Array.from(currentBlocks.values())
     );
 
     canvas.width = cols * blockWidth;
@@ -145,13 +142,11 @@ function updateCanvas(): void {
 addBlockBtn.addEventListener("click", () => {
     blockNum++;
 
-    let currentName = `Block ${blockNum}`;
-
     const blockDiv: HTMLDivElement = document.createElement("div");
 
     const nameInput: HTMLInputElement = document.createElement("input");
     nameInput.placeholder = "Name";
-    nameInput.value = currentName;
+    nameInput.value = `Block ${blockNum}`
 
     const colourSelect: HTMLSelectElement = document.createElement("select");
     colourSelect.innerText = "Colour";
@@ -166,43 +161,30 @@ addBlockBtn.addEventListener("click", () => {
 
     const weightInput: HTMLInputElement = document.createElement("input");
     weightInput.placeholder = "Weight";
+    weightInput.value = "1";
 
     const deleteBtn: HTMLButtonElement = document.createElement("button");
     deleteBtn.innerText = "Delete";
 
     const updateBlocks = () => {
-        const name: string = nameInput.value;
         const colour: string = colourSelect.value;
         let weight: number = Number.parseFloat(weightInput.value);
 
-        if (!name || !colour || Number.isNaN(weight)) {
+        if (!colour || Number.isNaN(weight)) {
             clearCanvas();
 
             return;
         }
 
-        const existing: BlockInfo | undefined = currentBlocks.get(currentName);
+        const block: BlockInfo | undefined = currentBlocks.get(blockDiv);
 
-        if (name != currentName && currentBlocks.get(name)) {
-            clearCanvas();
-
-            return;
-        }
-
-        if (existing) {
-            if (name != currentName) {
-                currentBlocks.set(name, existing);
-                currentBlocks.delete(currentName);
-            }
-
-            existing.colour = colour;
-            existing.weight = weight;
+        if (block) {
+            block.colour = colour;
+            block.weight = weight;
 
         } else {
-            currentBlocks.set(name, {colour: colour, weight: weight});
+            currentBlocks.set(blockDiv, {colour: colour, weight: weight});
         }
-
-        currentName = name;
 
         updateCanvas();
     }
@@ -213,7 +195,7 @@ addBlockBtn.addEventListener("click", () => {
 
     deleteBtn.addEventListener("click", () => {
         blockDiv.remove();
-        currentBlocks.delete(currentName);
+        currentBlocks.delete(blockDiv);
 
         updateCanvas();
     });
