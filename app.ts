@@ -12,7 +12,7 @@ class NormalNoise {
 
     public get(posX: number, posY: number): number {
         const noise: number = this.noise2D(posX + this.offsetX, posY + this.offsetY);
-        const normalized: number = (noise + 1) * 0.5;
+        const normalized = (noise + 1) * 0.5;
 
         return Math.min(Math.max(normalized, 0), 1);
     }
@@ -89,7 +89,8 @@ const colours: string[] = [
     "white", "grey", "black", "brown", "red", "orange", "yellow", "green", "blue", "purple", "pink"
 ];
 
-const currentBlocks: Map<HTMLDivElement, BlockInfo> = new Map();
+const currentBlocks = new Map<HTMLDivElement, BlockInfo>();
+const blockCountSpans = new Map<BlockInfo, HTMLSpanElement>();
 
 let blockNum: number = 0;
 
@@ -126,9 +127,13 @@ function updateCanvas(): void {
 
     const context: CanvasRenderingContext2D = canvas.getContext("2d") as CanvasRenderingContext2D;
 
+    const countMap = new Map<BlockInfo, number>()
+
     for (let i: number = 0; i < cols; i++) {
         for (let j: number = 0; j < rows; j++) {
             const block = patternGrid.getBlockAt([i, j]);
+
+            countMap.set(block, (countMap.get(block) ?? 0) + 1)
 
             context.strokeStyle = "black";
             context.lineWidth = 1;
@@ -137,6 +142,12 @@ function updateCanvas(): void {
             context.fillRect(i * blockWidth, j * blockHeight, blockWidth, blockHeight);
             context.strokeRect(i * blockWidth, j * blockHeight, blockWidth, blockHeight);
         }
+    }
+
+    for (const [block, countSpan] of blockCountSpans.entries()) {
+        const count = countMap.get(block) ?? 0 // ?? same as || but only for null or undefined
+
+        countSpan.innerText = ` ${count} (${Math.floor(count / 64)}×64 + ${count % 64}) `
     }
 }
 
@@ -163,6 +174,8 @@ addBlockBtn.addEventListener("click", () => {
     weightInput.placeholder = "Weight";
     weightInput.value = "1";
 
+    const countSpan: HTMLSpanElement = document.createElement("span");
+
     const deleteBtn: HTMLButtonElement = document.createElement("button");
     deleteBtn.innerText = "Delete";
 
@@ -183,7 +196,10 @@ addBlockBtn.addEventListener("click", () => {
             block.weight = weight;
 
         } else {
-            currentBlocks.set(blockDiv, {colour: colour, weight: weight});
+            const newBlock = {colour: colour, weight: weight}
+
+            currentBlocks.set(blockDiv, newBlock)
+            blockCountSpans.set(newBlock, countSpan)
         }
 
         updateCanvas();
@@ -202,7 +218,7 @@ addBlockBtn.addEventListener("click", () => {
 
     updateBlock();
 
-    blockDiv.append(nameInput, colourSelect, weightInput, deleteBtn);
+    blockDiv.append(nameInput, colourSelect, weightInput, countSpan, deleteBtn);
     blockContainer.append(blockDiv);
 
     blockNum++;
