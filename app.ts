@@ -178,10 +178,10 @@ addBlockBtn.addEventListener("click", () => {
     weightInput.placeholder = "Weight";
     weightInput.value = "1";
 
-    const countSpan: HTMLSpanElement = document.createElement("span");
-
     const deleteBtn: HTMLButtonElement = document.createElement("button");
     deleteBtn.innerText = "Delete";
+
+    const countSpan: HTMLSpanElement = document.createElement("span");
 
     const updateBlock = () => {
         const colour: string = colourSelect.value;
@@ -222,7 +222,7 @@ addBlockBtn.addEventListener("click", () => {
 
     updateBlock();
 
-    blockDiv.append(nameInput, colourSelect, weightInput, countSpan, deleteBtn);
+    blockDiv.append(nameInput, colourSelect, weightInput, deleteBtn, countSpan);
     blockContainer.append(blockDiv);
 
     blockNum++;
