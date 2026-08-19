@@ -66,7 +66,7 @@ class PatternGrid {
             if (noise <= 0) return info;
         }
 
-        return Array.from(this.blocks.values())[0]
+        return Array.from(this.blocks.values())[0];
     }
 }
 
@@ -127,7 +127,7 @@ function updateCanvas(): void {
 
     const context: CanvasRenderingContext2D = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-    const countMap = new Map<BlockInfo, number>()
+    const countMap = new Map<BlockInfo, number>();
 
     for (let i: number = 0; i < cols; i++) {
         for (let j: number = 0; j < rows; j++) {
@@ -145,9 +145,9 @@ function updateCanvas(): void {
     }
 
     for (const [block, countSpan] of blockCountSpans.entries()) {
-        const count = countMap.get(block) ?? 0 // ?? same as || but only for null or undefined
+        const count = countMap.get(block) ?? 0; // ?? same as || but only for null or undefined
 
-        countSpan.innerText = ` ${count} (${Math.floor(count / 64)}×64 + ${count % 64}) `
+        countSpan.innerText = ` ${count} (${Math.floor(count / 64)}×64 + ${count % 64}) `;
     }
 }
 
@@ -156,7 +156,7 @@ addBlockBtn.addEventListener("click", () => {
 
     const nameInput: HTMLInputElement = document.createElement("input");
     nameInput.placeholder = "Name";
-    nameInput.value = `Block ${blockNum + 1}`
+    nameInput.value = `Block ${blockNum + 1}`;
 
     const colourSelect: HTMLSelectElement = document.createElement("select");
 
@@ -196,10 +196,10 @@ addBlockBtn.addEventListener("click", () => {
             block.weight = weight;
 
         } else {
-            const newBlock = {colour: colour, weight: weight}
+            const newBlock = {colour: colour, weight: weight};
 
-            currentBlocks.set(blockDiv, newBlock)
-            blockCountSpans.set(newBlock, countSpan)
+            currentBlocks.set(blockDiv, newBlock);
+            blockCountSpans.set(newBlock, countSpan);
         }
 
         updateCanvas();
