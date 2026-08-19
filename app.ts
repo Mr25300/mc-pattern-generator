@@ -97,7 +97,11 @@ let blockNum: number = 0;
 function clearCanvas(): void {
     const context: CanvasRenderingContext2D = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-    context.clearRect(0, 0, canvas.width, canvas.height)
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (const span of blockCountSpans.values()) {
+        span.innerText = "";
+    }
 }
 
 function updateCanvas(): void {
